@@ -1,0 +1,93 @@
+---
+title: <center><h1>Mapping in R</h1></center>
+author: 
+  <center>River A. Watson</center>
+output: rmdformats::downcute
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggsn)
+library(mapdata)
+library(maptools)
+library(rgdal)
+library(tidyverse)
+library(sf)
+library(rgdal)
+library(leaflet)
+library(OpenStreetMap)
+library(proj4)
+```
+
+```{r Simple Map Data, message=FALSE, warning=FALSE}
+state <- map_data("state")
+county <- map_data("county")
+ky <- county %>% 
+  filter(region=="kentucky")
+
+clay <- county %>% 
+  filter(region=="kentucky") %>% 
+  filter(subregion %in% c("clay", "leslie", "owsley"))
+
+sites <- read.csv('data/tissue_loc.csv')
+dbnf <- readOGR('data/DBNFOwnership.shp')
+fortdbnf <- fortify(dbnf)
+```
+
+
+```{r Locator Map, message=FALSE, warning=FALSE}
+bigmap <- ggplot() + geom_polygon(data = state, aes(x=long, y = lat, group = group),
+                        fill = "white", color="black") + 
+           geom_polygon(data = ky, aes(x=long, y = lat, group = group),
+                        fill = "gray76", color="black") +
+  geom_polygon(data = clay, aes(x=long, y=lat, group=group), fill="peachpuff3",color="black")+
+  geom_point(data = sites, aes(x=Long,y=Lat, group='group'), color="black") +
+  coord_fixed(xlim = c(-89.2, -81),  ylim = c(34.8, 39.3), ratio = 1.2) + xlab("Longitude") + ylab("Latitude")
+
+library(cowplot)
+
+ggdraw(bigmap) +
+  draw_plot(
+    {bigmap+
+        coord_sf(xlim = c(-84.1,-83), ylim = c(36.85,37.6), expand = FALSE)+
+        theme(legend.position = 'none')}, x=.58, y=0, width = 0.46, height = 0.46)
+ 
+#geom_polygon(data=fortdbnf, aes(x=long, y=lat, group = group), color="peachpuff3")
+
+```
+
+
+## Interactive Map
+
+
+```{r interact, message=FALSE, warning=FALSE}
+OzarksMap <- openmap(c(36.498582, -94.615437),
+                     c(35.499236, -92.356545), type='bing')
+OzarksMap2 <- openproj(OzarksMap, projection = "+proj=longlat +ellps=WGS84 +units=m +no_defs")
+hiking_points <- read.csv("data/hikingpoints.csv")
+autoplot.OpenStreetMap(OzarksMap2) +
+  geom_point(data=hiking_points, aes(x = longitude, y = latitude, color="black"), size = 3, alpha = 0.8) +
+  geom_text(data=hiking_points,aes(x=longitude,y=latitude,label=Name), color="black", vjust=-0.45, size=2.01, fontface="bold") +
+  geom_text(data=hiking_points,aes(x=longitude,y=latitude,label=Name), color="white", vjust=-0.50, size=2.01, fontface="bold") +
+  labs(x="Longtiude", y="Latitude") + theme(legend.position = "none")
+```
+
+
+```{r not working, echo=FALSE}
+#onf <- readOGR('data/OZARKNFS_SCENIC_RIVER_NFS.shp')
+#fortonf <- fortify(onf)
+#project(fortonf, proj, inverse = FALSE, ellps.default = "sphere")
+
+```
+
+
+```{r ineractive leaflet map, fig.height=6, fig.width=8, message=FALSE, warning=FALSE}
+leaflet(hiking_points) %>% 
+  addTiles() %>%
+  addCircleMarkers(popup = hiking_points$Name,
+                   label = hiking_points$Name,
+                   weight = 1,
+                   color = "grey",
+                   fillColor = "black",
+                   fillOpacity = 0.7)
+```
