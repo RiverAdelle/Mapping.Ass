@@ -60,7 +60,7 @@ ggdraw(bigmap) +
 ## Interactive Map
 
 
-```{r interact, message=FALSE, warning=FALSE}
+```{r interact, fig.height=4, fig.width=9, message=FALSE, warning=FALSE}
 OzarksMap <- openmap(c(36.498582, -94.615437),
                      c(35.499236, -92.356545), type='bing')
 OzarksMap2 <- openproj(OzarksMap, projection = "+proj=longlat +ellps=WGS84 +units=m +no_defs")
@@ -83,11 +83,15 @@ autoplot.OpenStreetMap(OzarksMap2) +
 
 ```{r ineractive leaflet map, fig.height=6, fig.width=8, message=FALSE, warning=FALSE}
 leaflet(hiking_points) %>% 
-  addTiles() %>%
+  addTiles(group = "OSM")%>%
+  addProviderTiles(providers[["CartoDB.Positron"]], group = "CartoDB") %>%
+  addProviderTiles(providers[["Esri.NatGeoWorldMap"]], group = "NatGeo") %>%
+  addProviderTiles(providers[["Esri.WorldImagery"]], group = "ESRI") %>%
   addCircleMarkers(popup = hiking_points$Name,
                    label = hiking_points$Name,
                    weight = 1,
                    color = "grey",
                    fillColor = "black",
-                   fillOpacity = 0.7)
+                   fillOpacity = 0.7) %>% addLayersControl(baseGroups = c("OSM", "CartoDB", "NatGeo", "ESRI"),
+    options = layersControlOptions(collapsed = FALSE))
 ```
